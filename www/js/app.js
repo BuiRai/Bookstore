@@ -4,70 +4,88 @@
 // 'starter' is the name of this angular module example (also set in a <body> attribute in index.html)
 // the 2nd parameter is an array of 'requires'
 // 'starter.controllers' is found in controllers.js
-angular.module('starter', ['ionic', 'starter.controllers'])
-
+angular.module('BookStoreApp', ['ionic', 'BookStoreApp.controllers'])
+/*
 .run(function($ionicPlatform) {
-  $ionicPlatform.ready(function() {
-    // Hide the accessory bar by default (remove this to show the accessory bar above the keyboard
-    // for form inputs)
-    if (window.cordova && window.cordova.plugins.Keyboard) {
-      cordova.plugins.Keyboard.hideKeyboardAccessoryBar(true);
-      cordova.plugins.Keyboard.disableScroll(true);
+	$ionicPlatform.ready(function() {
+		// Hide the accessory bar by default (remove this to show the accessory bar above the keyboard
+		// for form inputs)
+		if (window.cordova && window.cordova.plugins.Keyboard) {
+			cordova.plugins.Keyboard.hideKeyboardAccessoryBar(true);
+			cordova.plugins.Keyboard.disableScroll(true);
 
-    }
-    if (window.StatusBar) {
-      // org.apache.cordova.statusbar required
-      StatusBar.styleDefault();
-    }
-  });
+		}
+		if (window.StatusBar) {
+			// org.apache.cordova.statusbar required
+			StatusBar.styleDefault();
+		}
+	});
 })
+*/
+.run(['$rootScope', 'AuthFactory',
+	function($rootScope, , AuthFactory) {
+		$rootScope.isAuthenticated = AuthFactory.isLoggedIn();
+		// utility method to convert number to an array of
+		elements
+		$rootScope.getNumber = function(num) {
+			return new Array(num);
+		}
+	}
+])
 
-.config(function($stateProvider, $urlRouterProvider) {
-  $stateProvider
+.config(['$stateProvider', '$urlRouterProvider', '$httpProvider',
+	function($stateProvider, $urlRouterProvider, $httpProvider) {
+		// setup the token interceptor
+		$httpProvider.interceptors.push('TokenInterceptor');
+		$stateProvider
+			.state('app', {
+				url: "/app",
+				abstract: true,
+				templateUrl: "templates/menu.html",
+				controller: 'AppCtrl'
+			})
 
-    .state('app', {
-    url: '/app',
-    abstract: true,
-    templateUrl: 'templates/menu.html',
-    controller: 'AppCtrl'
-  })
+			.state('app.browse', {
+				url: "/browse",
+				views: {
+					'menuContent': {
+						templateUrl: "templates/browse.html",
+						controller: 'BrowseCtrl'
+					}
+				}
+			})
 
-  .state('app.search', {
-    url: '/search',
-    views: {
-      'menuContent': {
-        templateUrl: 'templates/search.html'
-      }
-    }
-  })
+		.state('app.book', {
+			url: "/book/:bookId",
+			views: {
+				'menuContent': {
+					templateUrl: "templates/book.html",
+					controller: 'BookCtrl'
+				}
+			}
+		})
 
-  .state('app.browse', {
-      url: '/browse',
-      views: {
-        'menuContent': {
-          templateUrl: 'templates/browse.html'
-        }
-      }
-    })
-    .state('app.playlists', {
-      url: '/playlists',
-      views: {
-        'menuContent': {
-          templateUrl: 'templates/playlists.html',
-          controller: 'PlaylistsCtrl'
-        }
-      }
-    })
+		.state('app.cart', {
+			url: "/cart",
+			views: {
+				'menuContent': {
+					templateUrl: "templates/cart.html",
+					controller: 'CartCtrl'
+				}
+			}
+		})
 
-  .state('app.single', {
-    url: '/playlists/:playlistId',
-    views: {
-      'menuContent': {
-        templateUrl: 'templates/playlist.html',
-        controller: 'PlaylistCtrl'
-      }
-    }
-  });
-  // if none of the above states are matched, use this as the fallback
-  $urlRouterProvider.otherwise('/app/playlists');
-});
+		.state('app.purchases', {
+			url: "/purchases",
+			views: {
+				'menuContent': {
+					templateUrl: "templates/purchases.html",
+					controller: 'PurchasesCtrl'
+				}
+			}
+		});
+
+		// if none of the above states are matched, use this as the fallback
+		$urlRouterProvider.otherwise('/app/browse');
+	}
+])
