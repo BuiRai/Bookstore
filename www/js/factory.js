@@ -1,166 +1,191 @@
 var base = 'http://localhost:3000';
 //var base = 'https://ionic-book-store.herokuapp.com';
+
 angular.module('BookStoreApp.factory', [])
 
 .factory('Loader', ['$ionicLoading', '$timeout', function($ionicLoading, $timeout) {
-	var LOADERAPI = {
-		showLoading: function(text) {
-			text = text || 'Loading...';
-			$ionicLoading.show({
-				template: text
-			});
-		},
 
-		hideLoading: function() {
-			$ionicLoading.hide();
-		},
+    var LOADERAPI = {
 
-		toggleLoadingWithMessage: function(text, timeout) {
-			$rootScope.showLoading(text);
-			$timeout(function() {
-				$rootScope.hideLoading();
-			}, timeout || 3000);
-		}
-	};
+        showLoading: function(text) {
+            text = text || 'Loading...';
+            $ionicLoading.show({
+                template: text
+            });
+        },
 
-	return LOADERAPI;
+        hideLoading: function() {
+            $ionicLoading.hide();
+        },
+
+        toggleLoadingWithMessage: function(text, timeout) {
+            var self = this;
+
+            self.showLoading(text);
+
+            $timeout(function() {
+                self.hideLoading();
+            }, timeout || 3000);
+        }
+
+    };
+    return LOADERAPI;
 }])
 
 .factory('LSFactory', [function() {
-	var LSAPI = {
-		clear: function() {
-			return localStorage.clear();
-		},
 
-		get: function(key) {
-			return JSON.parse(localStorage.getItem(key));
-		},
+    var LSAPI = {
 
-		set: function(key, data) {
-			return localStorage.setItem(key, JSON.stringify(data));
-		},
+        clear: function() {
+            return localStorage.clear();
+        },
 
-		delete: function(key) {
-			return localStorage.removeItem(key);
-		},
+        get: function(key) {
+            return JSON.parse(localStorage.getItem(key));
+        },
 
-		getAll: function() {
-			var books = [];
-			var items = Object.keys(localStorage);
-			for (var i = 0; i < items.length; i++) {
-				if (items[i] !== 'user' || items[i] != 'token') {
-					books.push(JSON.parse(localStorage[items[i]]));
-				}
-			}
+        set: function(key, data) {
+            return localStorage.setItem(key, JSON.stringify(data));
+        },
 
-			return books;
-		}
-	};
+        delete: function(key) {
+            return localStorage.removeItem(key);
+        },
 
-	return LSAPI;
+        getAll: function() {
+            var books = [];
+            var items = Object.keys(localStorage);
+
+            for (var i = 0; i < items.length; i++) {
+                if (items[i] !== 'user' || items[i] != 'token') {
+                    books.push(JSON.parse(localStorage[items[i]]));
+                }
+            }
+
+            return books;
+        }
+
+    };
+
+    return LSAPI;
+
 }])
 
+
 .factory('AuthFactory', ['LSFactory', function(LSFactory) {
-	var userKey = 'user';
-	var tokenKey = 'token';
 
-	var AuthAPI = {
-		isLoggedIn: function() {
-			return this.getUser() === null ? false : true;
-		},
+    var userKey = 'user';
+    var tokenKey = 'token';
 
-		getUser: function() {
-			return LSFactory.get(userKey);
-		},
+    var AuthAPI = {
 
-		setUser: function(user) {
-			return LSFactory.set(userKey, user);
-		},
+        isLoggedIn: function() {
+            return this.getUser() === null ? false : true;
+        },
 
-		getToken: function() {
-			return LSFactory.get(tokenKey);
-		},
+        getUser: function() {
+            return LSFactory.get(userKey);
+        },
 
-		setToken: function(token) {
-			return LSFactory.set(tokenKey, token);
-		},
+        setUser: function(user) {
+            return LSFactory.set(userKey, user);
+        },
 
-		deleteAuth: function() {
-			LSFactory.delete(userKey);
-			LSFactory.delete(tokenKey);
-		}
-	};
+        getToken: function() {
+            return LSFactory.get(tokenKey);
+        },
 
-	return AuthAPI;
+        setToken: function(token) {
+            return LSFactory.set(tokenKey, token);
+        },
+
+        deleteAuth: function() {
+            LSFactory.delete(userKey);
+            LSFactory.delete(tokenKey);
+        }
+
+    };
+
+    return AuthAPI;
+
 }])
 
 .factory('TokenInterceptor', ['$q', 'AuthFactory', function($q, AuthFactory) {
-	return {
-		request: function(config) {
-			config.headers = config.headers || {};
-			var token = AuthFactory.getToken();
-			var user = AuthFactory.getUser();
 
-			if (token && user) {
-				config.headers['X-Access-Token'] = token.token;
-				config.headers['X-Key'] = user.email;
-				config.headers['Content-Type'] = "application/json";
-			}
-			return config || $q.when(config);
-		},
+    return {
+        request: function(config) {
+            config.headers = config.headers || {};
+            var token = AuthFactory.getToken();
+            var user = AuthFactory.getUser();
 
-		response: function(response) {
-			return response || $q.when(response);
-		}
-	};
+            if (token && user) {
+                config.headers['X-Access-Token'] = token.token;
+                config.headers['X-Key'] = user.email;
+                config.headers['Content-Type'] = "application/json";
+            }
+            return config || $q.when(config);
+        },
+
+        response: function(response) {
+            return response || $q.when(response);
+        }
+    };
+
 }])
+
 
 .factory('BooksFactory', ['$http', function($http) {
-	var perPage = 30;
-	var API = {
-		get: function(page) {
-			return $http.get(base + '/api/v1/books/' + page + '/' + perPage);
-		}
-	};
 
-	return API;
+    var perPage = 30;
+
+    var API = {
+        get: function(page) {
+            return $http.get(base + '/api/v1/books/' + page + '/' + perPage);
+        }
+    };
+
+    return API;
 }])
 
-.factory('UserFactory', ['$http', 'AuthFactory', function($http, AuthFactory) {
-	var UserAPI = {
+.factory('UserFactory', ['$http', 'AuthFactory',
+    function($http, AuthFactory) {
 
-		login: function(user) {
-			return $http.post(base + '/login', user);
-		},
+        var UserAPI = {
 
-		register: function(user) {
-			return $http.post(base + '/register', user);
-		},
+            login: function(user) {
+                return $http.post(base + '/login', user);
+            },
 
-		logout: function() {
-			AuthFactory.deleteAuth();
-		},
+            register: function(user) {
+                return $http.post(base + '/register', user);
+            },
 
-		getCartItems: function() {
-			var userId = AuthFactory.getUser()._id;
-			return $http.get(base + '/api/v1/users/' + userId + '/cart');
-		},
+            logout: function() {
+                AuthFactory.deleteAuth();
+            },
 
-		addToCart: function(book) {
-			var userId = AuthFactory.getUser()._id;
-			return $http.post(base + '/api/v1/users/' + userId + '/cart', book);
-		},
+            getCartItems: function() {
+                var userId = AuthFactory.getUser()._id;
+                return $http.get(base + '/api/v1/users/' + userId + '/cart');
+            },
 
-		getPurchases: function() {
-			var userId = AuthFactory.getUser()._id;
-			return $http.get(base + '/api/v1/users/' + userId + '/purchases');
-		},
+            addToCart: function(book) {
+                var userId = AuthFactory.getUser()._id;
+                return $http.post(base + '/api/v1/users/' + userId + '/cart', book);
+            },
 
-		addPurchase: function(cart) {
-			var userId = AuthFactory.getUser()._id;
-			return $http.post(base + '/api/v1/users/' + userId + '/purchases', cart);
-		}
-	};
+            getPurchases: function() {
+                var userId = AuthFactory.getUser()._id;
+                return $http.get(base + '/api/v1/users/' + userId + '/purchases');
+            },
 
-	return UserAPI;
-}])
+            addPurchase: function(cart) {
+                var userId = AuthFactory.getUser()._id;
+                return $http.post(base + '/api/v1/users/' + userId + '/purchases', cart);
+            }
+
+        };
+
+        return UserAPI;
+    }
+])
